@@ -1,0 +1,12 @@
+# Artefatos do Python (gerados; nunca versionar)
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Banco do cache é criado em runtime em ~/.config/wic/ — nunca aqui, mas por garantia:
+*.db

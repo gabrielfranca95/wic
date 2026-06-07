@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""
+Launcher do wic. Acha o pacote `wic` (irmão da pasta bin/) e chama o CLI.
+
+No Homebrew, a fórmula instala o pacote em libexec/ e este launcher em bin/,
+ajustando o caminho — então este arquivo funciona tanto no checkout local
+quanto instalado.
+"""
+import os
+import sys
+
+_aqui = os.path.dirname(os.path.realpath(__file__))
+_raiz = os.path.dirname(_aqui)            # pasta que contém o pacote wic/
+if _raiz not in sys.path:
+    sys.path.insert(0, _raiz)
+
+from wic.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(main())
