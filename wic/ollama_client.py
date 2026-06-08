@@ -112,12 +112,48 @@ def modelo_presente(modelo: str) -> bool:
     return any(n == modelo or n.split(":")[0] == base for n in nomes)
 
 
+def iniciar_servico(timeout: int = 15) -> None:
+    """
+    Garante o daemon do Ollama no ar — e SOBE ELE SOZINHO se estiver desligado,
+    em segundo plano. O usuário nunca precisa rodar `ollama serve`, mexer com
+    systemctl nem abrir o app: o wic cuida disso de forma invisível.
+
+    Levanta OllamaError só se o Ollama nem estiver instalado ou não subir a tempo.
+    """
+    if servico_no_ar():
+        return
+    try:
+        # destacado (start_new_session): o daemon sobrevive ao fim do wic e fica
+        # disponível pras próximas chamadas. Saída silenciada (invisível).
+        subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except FileNotFoundError as e:
+        raise OllamaError(
+            "Ollama não encontrado. Instale com:\n"
+            "  curl -fsSL https://ollama.com/install.sh | sh   (Linux)\n"
+            "  brew install ollama                             (macOS)"
+        ) from e
+    # espera o daemon responder (sobe em ~1-2s normalmente)
+    for _ in range(timeout * 2):
+        time.sleep(0.5)
+        if servico_no_ar():
+            return
+    raise OllamaError(
+        "Não consegui iniciar o assistente local automaticamente.\n"
+        "Tente uma vez na mão pra ver o erro:  ollama serve"
+    )
+
+
 def garantir_modelo(modelo: str = MODELO_PADRAO) -> None:
     """
-    Baixa o modelo no primeiro uso, se faltar (o download de ~1 GB de uma vez só).
-    Mostra o progresso do `ollama pull` direto no terminal — sem fingir que é
-    instantâneo. Levanta OllamaError se não der.
+    Garante o serviço no ar (subindo sozinho se preciso) e baixa o modelo no
+    primeiro uso, se faltar (~1 GB, uma vez só). Levanta OllamaError se não der.
     """
+    iniciar_servico()            # sobe o Ollama sozinho se estiver desligado
     if modelo_presente(modelo):
         return
     sys.stderr.write(
